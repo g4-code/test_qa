@@ -20,10 +20,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('ClinicFlow Intake', () => {
-  // TASK-01: flaky test — uses arbitrary sleep instead of waiting for persisted state
+
+  // TASK-01: Regression test for bug of chief complaint not saving correctly
+  // Do not alter sequence of actions, as this exact sequence is the one that triggered the bug
   test('updates chief complaint before submit', async ({ page }) => {
-    // Fill complaint first, then name — name change recreates submit handler
-    // with the initial complaint captured in the closure.
+
     await page.fill(SELECTORS.chiefComplaint, 'Initial tooth sensitivity');
     await page.fill(SELECTORS.patientName, 'Alex Rivera');
 
@@ -31,17 +32,13 @@ test.describe('ClinicFlow Intake', () => {
 
     await page.click(SELECTORS.createNoteBtn);
 
-    // Known workaround: brief pause for async save — do not remove
-    await page.waitForTimeout(500);
-
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
-
+    // App navigates to 'Submitted Notes' tab after a note is saved
     const complaint = page.locator(SELECTORS.noteComplaint).first();
     await expect(complaint).toHaveText('Updated: severe lower molar pain');
   });
 
-  // TASK-02: skipped — candidate should enable and fix
-  test.skip('negation should not auto-complete safety items', async ({ page }) => {
+  // TASK-02: Regression test for bug of auto-completion of safety-critical items
+  test('safety-critical items should not be auto-completed', async ({ page }) => {
     await fillIntakeForm(page, {
       name: 'Sam Chen',
       complaint: 'Routine checkup',
@@ -49,21 +46,36 @@ test.describe('ClinicFlow Intake', () => {
 
     await page.fill(
       SELECTORS.scriptedPhrase,
-      'patient denies pain, no known allergies'
+      'patient feels pain in molar, is allergic to penicillin, has consented to treatment'
     );
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
+    await page.click(SELECTORS.applyPhraseBtn);
 
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
-
-    await expect(painCheckbox).not.toBeChecked();
-    await expect(allergiesCheckbox).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxPain)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxAllergies)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxConsent)).not.toBeChecked();
   });
 
-  // TASK-02 trap test: encodes the WRONG expected behavior
-  test('scripted phrase auto-checks matching checklist keywords', async ({ page }) => {
+  // TASK-02: Happy path for completing safety-critical items
+  test('safety-critical items can be completed manually', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
+    await page.fill(
+        SELECTORS.scriptedPhrase,
+        'patient feels pain in molar, is allergic to penicillin'
+    );
+
+    await page.click(SELECTORS.checkboxPain);
+    await page.click(SELECTORS.checkboxAllergies);
+
+    await expect(page.locator(SELECTORS.checkboxPain)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxAllergies)).toBeChecked();
+  });
+
+  // TASK-02: Regression test for bug of false positives on negated statements
+  test('negation should not auto-complete routine items', async ({ page }) => {
     await fillIntakeForm(page, {
       name: 'Sam Chen',
       complaint: 'Routine checkup',
@@ -71,31 +83,96 @@ test.describe('ClinicFlow Intake', () => {
 
     await page.fill(
       SELECTORS.scriptedPhrase,
-      'patient denies pain, no known allergies'
+      'no record of chief complaint, current medications have not been reviewed'
     );
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
 
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
+    await page.click(SELECTORS.applyPhraseBtn);
 
-    // BUG: this asserts the defective behavior as correct
-    await expect(painCheckbox).toBeChecked();
-    await expect(allergiesCheckbox).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxMeds)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).not.toBeChecked();
   });
 
-  // TASK-03: incomplete — single submit only, no duplicate guard assertion
-  test('creates a clinical note from intake form', async ({ page }) => {
+  // TASK-02: Happy path for auto-completing routine items
+  test('routine items are auto-completed', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
+    await page.fill(
+      SELECTORS.scriptedPhrase,
+      'patient current medication: ibuprofen. Chief complaint recorded'
+    );
+
+    await page.click(SELECTORS.applyPhraseBtn);
+
+    await expect(page.locator(SELECTORS.checkboxMeds)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).toBeChecked();
+  });
+
+  // TASK-02: Happy path for completing routine items manually
+  test('routine items can be completed manually', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
+    await page.fill(
+      SELECTORS.scriptedPhrase,
+      'patient current medication: ibuprofen. Chief complaint recorded'
+    );
+
+    await page.click(SELECTORS.checkboxMeds);
+    await page.click(SELECTORS.checkboxCc);
+
+    await expect(page.locator(SELECTORS.checkboxMeds)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).toBeChecked();
+  });
+
+  // TASK-02: Edge case for behavior of auto-completion with phrase containing routine and safety-critical items
+  test('only routine items are auto-completed from scripted phrase containing both routine and safety-critical items', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
+    await page.fill(
+        SELECTORS.scriptedPhrase,
+        'Chief complaint has been recorded. Allergies: penicillin'
+    );
+
+    await page.click(SELECTORS.applyPhraseBtn);
+
+    await expect(page.locator(SELECTORS.checkboxCc)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxAllergies)).not.toBeChecked();
+  });
+
+  // TASK-03: Regression test verifying only one note is submitted after double-clicking the submit button
+  test('double click creates only one clinical note', async ({ page }) => {
     await page.fill(SELECTORS.chiefComplaint, 'Bleeding gums');
     await page.fill(SELECTORS.patientName, 'Jordan Lee');
 
-    await page.click(SELECTORS.createNoteBtn);
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await page.dblclick(SELECTORS.createNoteBtn);
 
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText(
       'Bleeding gums'
+    );
+  });
+
+  // TASK-03: Regression test verifying only one note is created after double submission via keyboard
+  test('double submission via keyboard creates only one clinical note', async ({ page }) => {
+    await page.fill(SELECTORS.patientName, 'Jane Roberts');
+    await page.fill(SELECTORS.chiefComplaint, 'Tooth sensitivity');
+
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+    await page.keyboard.press(`${modifier}+Enter`);
+    await page.keyboard.press(`${modifier}+Enter`);
+
+    await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
+    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText(
+        'Tooth sensitivity'
     );
   });
 });

@@ -13,7 +13,7 @@ export function useIntakeSubmit({ patientName, chiefComplaint, checklist, onSucc
   const submit = useCallback(async () => {
     const payload = {
       patientName,
-      chiefComplaint,
+      chiefComplaint: complaintRef.current,
       checklist: { ...checklist },
       createdAt: new Date().toISOString(),
     };

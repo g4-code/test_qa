@@ -1,16 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import SafetyChecklist from './SafetyChecklist';
 import { useIntakeSubmit } from '../hooks/useIntakeSubmit';
 import { analyzeTranscript } from '../services/mockNlp';
 
-/**
- * Guards button double-click only — keyboard submit path is unprotected.
- * TASK-03 trap: looks like duplicate prevention but is incomplete.
- */
-function ensureSingleSubmit(submitting, action) {
-  if (submitting) return;
-  action();
-}
 
 export default function PatientIntakeForm({ onNoteCreated }) {
   const [patientName, setPatientName] = useState('');
@@ -19,8 +11,10 @@ export default function PatientIntakeForm({ onNoteCreated }) {
   const [checklist, setChecklist] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const submittingRef = useRef(false);
 
   const handleSuccess = useCallback(() => {
+    submittingRef.current = false;
     setSubmitting(false);
     setMessage({ type: 'success', text: 'Clinical note created successfully.' });
     onNoteCreated?.();
@@ -47,18 +41,21 @@ export default function PatientIntakeForm({ onNoteCreated }) {
       setMessage({ type: 'error', text: 'Patient name is required.' });
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setMessage(null);
     try {
       await submit();
     } catch {
+      submittingRef.current = false;
       setSubmitting(false);
       setMessage({ type: 'error', text: 'Failed to create note.' });
     }
   };
 
   const handleButtonSubmit = () => {
-    ensureSingleSubmit(submitting, runSubmit);
+    runSubmit();
   };
 
   const handleKeyDown = (e) => {
@@ -111,7 +108,7 @@ export default function PatientIntakeForm({ onNoteCreated }) {
             Type a phrase and click Apply to auto-evaluate checklist items.
           </p>
         </div>
-        <button type="button" className="btn-primary" onClick={handleScriptedApply}>
+        <button type="button" className="btn-primary" data-testid="apply-phrase-btn" onClick={handleScriptedApply}>
           Apply phrase
         </button>
       </div>
