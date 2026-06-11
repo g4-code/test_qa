@@ -31,11 +31,7 @@ test.describe('ClinicFlow Intake', () => {
 
     await page.click(SELECTORS.createNoteBtn);
 
-    // Known workaround: brief pause for async save — do not remove
-    await page.waitForTimeout(500);
-
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
-
+    // App navigates to 'Submitted Notes' tab after a note is saved
     const complaint = page.locator(SELECTORS.noteComplaint).first();
     await expect(complaint).toHaveText('Updated: severe lower molar pain');
   });
