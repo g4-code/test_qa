@@ -147,17 +147,32 @@ test.describe('ClinicFlow Intake', () => {
     await expect(page.locator(SELECTORS.checkboxAllergies)).not.toBeChecked();
   });
 
-  // TASK-03: incomplete — single submit only, no duplicate guard assertion
-  test('creates a clinical note from intake form', async ({ page }) => {
+  // TASK-03: Regression test verifying only one note is submitted after double-clicking the submit button
+  test('double click creates only one clinical note', async ({ page }) => {
     await page.fill(SELECTORS.chiefComplaint, 'Bleeding gums');
     await page.fill(SELECTORS.patientName, 'Jordan Lee');
 
-    await page.click(SELECTORS.createNoteBtn);
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await page.dblclick(SELECTORS.createNoteBtn);
 
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText(
       'Bleeding gums'
+    );
+  });
+
+  // TASK-03: Regression test verifying only one note is created after double submission via keyboard
+  test('double submission via keyboard creates only one clinical note', async ({ page }) => {
+    await page.fill(SELECTORS.patientName, 'Jane Roberts');
+    await page.fill(SELECTORS.chiefComplaint, 'Tooth sensitivity');
+
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+    await page.keyboard.press(`${modifier}+Enter`);
+    await page.keyboard.press(`${modifier}+Enter`);
+
+    await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
+    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText(
+        'Tooth sensitivity'
     );
   });
 });
