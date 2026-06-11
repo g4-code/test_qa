@@ -111,7 +111,7 @@ export default function PatientIntakeForm({ onNoteCreated }) {
             Type a phrase and click Apply to auto-evaluate checklist items.
           </p>
         </div>
-        <button type="button" className="btn-primary" onClick={handleScriptedApply}>
+        <button type="button" className="btn-primary" data-testid="apply-phrase-btn" onClick={handleScriptedApply}>
           Apply phrase
         </button>
       </div>

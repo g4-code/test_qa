@@ -10,6 +10,7 @@ export default function SafetyChecklist({ checklist, onToggle }) {
             <input
               type="checkbox"
               id={`check-${item.id}`}
+              data-testid={`checkbox-${item.id}`}
               checked={!!checklist[item.id]}
               onChange={() => onToggle(item.id)}
             />

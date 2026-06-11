@@ -48,19 +48,11 @@ test.describe('ClinicFlow Intake', () => {
       SELECTORS.scriptedPhrase,
       'patient feels pain in molar, is allergic to penicillin, has consented to treatment'
     );
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
+    await page.click(SELECTORS.applyPhraseBtn);
 
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
-    const consentTreatmentCheckbox = page.getByRole('checkbox', {
-      name: /Treatment consent obtained/i,
-    });
-
-    await expect(painCheckbox).not.toBeChecked();
-    await expect(allergiesCheckbox).not.toBeChecked();
-    await expect(consentTreatmentCheckbox).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxPain)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxAllergies)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxConsent)).not.toBeChecked();
   });
 
   // TASK-02: Happy path for completing safety-critical items
@@ -75,16 +67,11 @@ test.describe('ClinicFlow Intake', () => {
         'patient feels pain in molar, is allergic to penicillin'
     );
 
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
+    await page.click(SELECTORS.checkboxPain);
+    await page.click(SELECTORS.checkboxAllergies);
 
-    await painCheckbox.click();
-    await allergiesCheckbox.click();
-
-    await expect(painCheckbox).toBeChecked();
-    await expect(allergiesCheckbox).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxPain)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxAllergies)).toBeChecked();
   });
 
   // TASK-02: Regression test for bug of false positives on negated statements
@@ -99,15 +86,10 @@ test.describe('ClinicFlow Intake', () => {
       'no record of chief complaint, current medications have not been reviewed'
     );
 
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
+    await page.click(SELECTORS.applyPhraseBtn);
 
-    const currentMedicationCheckbox = page.getByRole('checkbox', { name: /Current medications reviewed/i });
-    const complaintCheckbox = page.getByRole('checkbox', {
-      name: /Chief complaint recorded/i,
-    });
-
-    await expect(currentMedicationCheckbox).not.toBeChecked();
-    await expect(complaintCheckbox).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxMeds)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).not.toBeChecked();
   });
 
   // TASK-02: Happy path for auto-completing routine items
@@ -122,15 +104,10 @@ test.describe('ClinicFlow Intake', () => {
       'patient current medication: ibuprofen. Chief complaint recorded'
     );
 
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
+    await page.click(SELECTORS.applyPhraseBtn);
 
-    const currentMedicationCheckbox = page.getByRole('checkbox', { name: /Current medications reviewed/i });
-    const complaintCheckbox = page.getByRole('checkbox', {
-      name: /Chief complaint recorded/i,
-    });
-
-    await expect(currentMedicationCheckbox).toBeChecked();
-    await expect(complaintCheckbox).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxMeds)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).toBeChecked();
   });
 
   // TASK-02: Happy path for completing routine items manually
@@ -145,16 +122,11 @@ test.describe('ClinicFlow Intake', () => {
       'patient current medication: ibuprofen. Chief complaint recorded'
     );
 
-    const currentMedicationCheckbox = page.getByRole('checkbox', { name: /Current medications reviewed/i });
-    const complaintCheckbox = page.getByRole('checkbox', {
-      name: /Chief complaint recorded/i,
-    });
+    await page.click(SELECTORS.checkboxMeds);
+    await page.click(SELECTORS.checkboxCc);
 
-    await currentMedicationCheckbox.click();
-    await complaintCheckbox.click();
-
-    await expect(currentMedicationCheckbox).toBeChecked();
-    await expect(complaintCheckbox).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxMeds)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).toBeChecked();
   });
 
   // TASK-02: Edge case for behavior of auto-completion with phrase containing routine and safety-critical items
@@ -169,17 +141,10 @@ test.describe('ClinicFlow Intake', () => {
         'Chief complaint has been recorded. Allergies: penicillin'
     );
 
-    const complaintCheckbox = page.getByRole('checkbox', {
-      name: /Chief complaint recorded/i,
-    });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
+    await page.click(SELECTORS.applyPhraseBtn);
 
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
-
-    await expect(complaintCheckbox).toBeChecked();
-    await expect(allergiesCheckbox).not.toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxCc)).toBeChecked();
+    await expect(page.locator(SELECTORS.checkboxAllergies)).not.toBeChecked();
   });
 
   // TASK-03: incomplete — single submit only, no duplicate guard assertion
