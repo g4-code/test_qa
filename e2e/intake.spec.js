@@ -28,7 +28,7 @@ test.describe('ClinicFlow Intake', () => {
       complaint: 'Initial tooth sensitivity',
     });
 
-    //await page.click(SELECTORS.chiefComplaint); // Focus again on textarea field for update
+    await page.click(SELECTORS.chiefComplaint); // Focus again on textarea field for update
     await page.fill(SELECTORS.chiefComplaint, 'Updated: severe lower molar pain');
     await page.click(SELECTORS.createNoteBtn);
 
