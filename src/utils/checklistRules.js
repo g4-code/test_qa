@@ -37,9 +37,13 @@ export const CHECKLIST_TEMPLATE = [
 
 /**
  * Returns true when the transcript appears to satisfy a checklist item.
- * TASK-02: keyword-only matching — ignores negation and auto-checks high-priority items.
  */
 export function isItemSatisfied(text, item) {
+  // Safety-critical items require manual confirmation.
+  if (item.priority === 'high') {
+    return false;
+  }
+
   const lower = text.toLowerCase();
   return lower.includes(item.keyword);
 }

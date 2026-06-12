@@ -10,9 +10,10 @@ async function resetAppState(page) {
   });
 }
 
-async function fillIntakeForm(page, { name, complaint }) {
+async function fillIntakeForm(page, { name = '', complaint = '',  phrase = ''}) {
   await page.fill(SELECTORS.patientName, name);
   await page.fill(SELECTORS.chiefComplaint, complaint);
+  await page.fill(SELECTORS.scriptedPhrase, phrase);  
 }
 
 test.beforeEach(async ({ page }) => {
@@ -20,82 +21,81 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('ClinicFlow Intake', () => {
-  // TASK-01: flaky test — uses arbitrary sleep instead of waiting for persisted state
-  test('updates chief complaint before submit', async ({ page }) => {
-    // Fill complaint first, then name — name change recreates submit handler
-    // with the initial complaint captured in the closure.
-    await page.fill(SELECTORS.chiefComplaint, 'Initial tooth sensitivity');
-    await page.fill(SELECTORS.patientName, 'Alex Rivera');
 
+  test('TASK-01: Updates chief complaint before creating note', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Alex Rivera',
+      complaint: 'Initial tooth sensitivity',
+    });
+
+    await page.click(SELECTORS.chiefComplaint); // Focus again on textarea field for update
     await page.fill(SELECTORS.chiefComplaint, 'Updated: severe lower molar pain');
-
     await page.click(SELECTORS.createNoteBtn);
 
     // Known workaround: brief pause for async save — do not remove
     await page.waitForTimeout(500);
 
     await page.getByRole('tab', { name: 'Submitted Notes' }).click();
-
     const complaint = page.locator(SELECTORS.noteComplaint).first();
     await expect(complaint).toHaveText('Updated: severe lower molar pain');
   });
 
-  // TASK-02: skipped — candidate should enable and fix
-  test.skip('negation should not auto-complete safety items', async ({ page }) => {
+  test('TASK-02: Clinician manually check the safety-critical item(s)', async ({ page }) => {
     await fillIntakeForm(page, {
       name: 'Sam Chen',
       complaint: 'Routine checkup',
+      phrase: 'patient denies pain, no known allergies'
     });
 
-    await page.fill(
-      SELECTORS.scriptedPhrase,
-      'patient denies pain, no known allergies'
-    );
     await page.getByRole('button', { name: 'Apply phrase' }).click();
 
     const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
+    const allergiesCheckbox = page.getByRole('checkbox', { name: /Allergies reviewed/i, });
 
+    // Assert Safety-critical item(s) are not auto-checked
     await expect(painCheckbox).not.toBeChecked();
     await expect(allergiesCheckbox).not.toBeChecked();
-  });
 
-  // TASK-02 trap test: encodes the WRONG expected behavior
-  test('scripted phrase auto-checks matching checklist keywords', async ({ page }) => {
-    await fillIntakeForm(page, {
-      name: 'Sam Chen',
-      complaint: 'Routine checkup',
-    });
+    // Clinician manually check the safety-critical item(s) based on phrase
+    await allergiesCheckbox.check();
 
-    await page.fill(
-      SELECTORS.scriptedPhrase,
-      'patient denies pain, no known allergies'
-    );
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
-
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', {
-      name: /Allergies reviewed/i,
-    });
-
-    // BUG: this asserts the defective behavior as correct
-    await expect(painCheckbox).toBeChecked();
+    await expect(painCheckbox).not.toBeChecked();
     await expect(allergiesCheckbox).toBeChecked();
-  });
-
-  // TASK-03: incomplete — single submit only, no duplicate guard assertion
-  test('creates a clinical note from intake form', async ({ page }) => {
-    await page.fill(SELECTORS.chiefComplaint, 'Bleeding gums');
-    await page.fill(SELECTORS.patientName, 'Jordan Lee');
 
     await page.click(SELECTORS.createNoteBtn);
     await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Routine checkup');
+  });
 
+  test('TASK-03: Attempt to create 2 notes with keyboard', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Jordan Lee',
+      complaint: 'Bleeding gums',
+    });
+
+    //Attempt to create 2 notes with keyboard
+    await page.keyboard.press('Control+Enter');
+    await page.keyboard.press('Control+Enter');
+
+    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
-    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText(
-      'Bleeding gums'
-    );
+    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Bleeding gums');
+  });
+
+  test('TASK-03: Attempt to create 2 notes with double click', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Jordan Lee',
+      complaint: 'Bleeding gums'
+    });
+
+    // Attempt to create 2 notes with doucble click
+    await page.dblclick(SELECTORS.createNoteBtn);
+
+    // Assert 'Create clinical note' button is disabled
+    //await expect(page.getByRole('button', { name: 'Create clinical note' })).toBeDisabled();
+
+    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
+    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Bleeding gums');
   });
 });

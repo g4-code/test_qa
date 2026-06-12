@@ -3,7 +3,6 @@ import { createNote } from '../services/mockEhr';
 
 /**
  * Handles clinical note submission.
- * TASK-01: submit handler closes over chiefComplaint from first render.
  */
 export function useIntakeSubmit({ patientName, chiefComplaint, checklist, onSuccess }) {
   const complaintRef = useRef(chiefComplaint);
@@ -13,7 +12,7 @@ export function useIntakeSubmit({ patientName, chiefComplaint, checklist, onSucc
   const submit = useCallback(async () => {
     const payload = {
       patientName,
-      chiefComplaint,
+      chiefComplaint: complaintRef.current,
       checklist: { ...checklist },
       createdAt: new Date().toISOString(),
     };
