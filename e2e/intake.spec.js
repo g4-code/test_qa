@@ -100,6 +100,26 @@ test.describe('ClinicFlow Intake', () => {
     await expect(allergiesCheckbox).toBeChecked();
   });
 
+  test('a mixed phrase auto-completes the routine item but not the critical one', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
+    await page.fill(
+      SELECTORS.scriptedPhrase,
+      'reviewed current medication list, consent obtained'
+    );
+    await page.getByRole('button', { name: 'Apply phrase' }).click();
+
+    await expect(
+      page.getByRole('checkbox', { name: /Current medications reviewed/i })
+    ).toBeChecked();
+    await expect(
+      page.getByRole('checkbox', { name: /Treatment consent obtained/i })
+    ).not.toBeChecked();
+  });
+
   test('creates a clinical note from intake form', async ({ page }) => {
     await page.fill(SELECTORS.chiefComplaint, 'Bleeding gums');
     await page.fill(SELECTORS.patientName, 'Jordan Lee');
