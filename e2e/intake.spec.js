@@ -28,14 +28,10 @@ test.describe('ClinicFlow Intake', () => {
       complaint: 'Initial tooth sensitivity',
     });
 
-    await page.click(SELECTORS.chiefComplaint); // Focus again on textarea field for update
+    //await page.click(SELECTORS.chiefComplaint); // Focus again on textarea field for update
     await page.fill(SELECTORS.chiefComplaint, 'Updated: severe lower molar pain');
     await page.click(SELECTORS.createNoteBtn);
 
-    // Known workaround: brief pause for async save — do not remove
-    await page.waitForTimeout(500);
-
-    await page.click(SELECTORS.submittedNotesTab);
     const complaint = page.locator(SELECTORS.noteComplaint).first();
     await expect(complaint).toHaveText('Updated: severe lower molar pain');
   });
@@ -116,7 +112,6 @@ test.describe('ClinicFlow Intake', () => {
     await page.keyboard.press('Control+Enter');
     await page.keyboard.press('Control+Enter');
 
-    await page.click(SELECTORS.submittedNotesTab);
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Bleeding gums');
   });
@@ -130,7 +125,6 @@ test.describe('ClinicFlow Intake', () => {
     // Attempt to create 2 notes with doucble click
     await page.dblclick(SELECTORS.createNoteBtn);
 
-    await page.click(SELECTORS.submittedNotesTab);
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Bleeding gums');
   });
