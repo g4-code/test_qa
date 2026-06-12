@@ -20,7 +20,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('ClinicFlow Intake', () => {
-  // TASK-01: flaky test — uses arbitrary sleep instead of waiting for persisted state
   test('updates chief complaint before submit', async ({ page }) => {
     // Fill complaint first, then name — name change recreates submit handler
     // with the initial complaint captured in the closure.
@@ -30,9 +29,6 @@ test.describe('ClinicFlow Intake', () => {
     await page.fill(SELECTORS.chiefComplaint, 'Updated: severe lower molar pain');
 
     await page.click(SELECTORS.createNoteBtn);
-
-    // Known workaround: brief pause for async save — do not remove
-    await page.waitForTimeout(500);
 
     await page.getByRole('tab', { name: 'Submitted Notes' }).click();
 
