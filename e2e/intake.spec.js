@@ -36,8 +36,7 @@ test.describe('ClinicFlow Intake', () => {
     await expect(complaint).toHaveText('Updated: severe lower molar pain');
   });
 
-  // TASK-02: skipped — candidate should enable and fix
-  test.skip('negation should not auto-complete safety items', async ({ page }) => {
+  test('negation should not auto-complete safety items', async ({ page }) => {
     await fillIntakeForm(page, {
       name: 'Sam Chen',
       complaint: 'Routine checkup',
@@ -58,26 +57,46 @@ test.describe('ClinicFlow Intake', () => {
     await expect(allergiesCheckbox).not.toBeChecked();
   });
 
-  // TASK-02 trap test: encodes the WRONG expected behavior
-  test('scripted phrase auto-checks matching checklist keywords', async ({ page }) => {
+  test('auto-assist completes a routine item from a positive phrase', async ({ page }) => {
     await fillIntakeForm(page, {
       name: 'Sam Chen',
       complaint: 'Routine checkup',
     });
 
-    await page.fill(
-      SELECTORS.scriptedPhrase,
-      'patient denies pain, no known allergies'
-    );
+    await page.fill(SELECTORS.scriptedPhrase, 'reviewed current medication list');
     await page.getByRole('button', { name: 'Apply phrase' }).click();
 
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
+    const medsCheckbox = page.getByRole('checkbox', {
+      name: /Current medications reviewed/i,
+    });
+    await expect(medsCheckbox).toBeChecked();
+  });
+
+  test('negation does not auto-complete a routine item', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
+    await page.fill(SELECTORS.scriptedPhrase, 'no current medication taken');
+    await page.getByRole('button', { name: 'Apply phrase' }).click();
+
+    const medsCheckbox = page.getByRole('checkbox', {
+      name: /Current medications reviewed/i,
+    });
+    await expect(medsCheckbox).not.toBeChecked();
+  });
+
+  test('clinician can manually check a safety-critical item', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+    });
+
     const allergiesCheckbox = page.getByRole('checkbox', {
       name: /Allergies reviewed/i,
     });
-
-    // BUG: this asserts the defective behavior as correct
-    await expect(painCheckbox).toBeChecked();
+    await allergiesCheckbox.check();
     await expect(allergiesCheckbox).toBeChecked();
   });
 
