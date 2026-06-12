@@ -100,7 +100,6 @@ test.describe('ClinicFlow Intake', () => {
     await expect(allergiesCheckbox).toBeChecked();
   });
 
-  // TASK-03: incomplete — single submit only, no duplicate guard assertion
   test('creates a clinical note from intake form', async ({ page }) => {
     await page.fill(SELECTORS.chiefComplaint, 'Bleeding gums');
     await page.fill(SELECTORS.patientName, 'Jordan Lee');
@@ -112,5 +111,25 @@ test.describe('ClinicFlow Intake', () => {
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText(
       'Bleeding gums'
     );
+  });
+
+  test('double-clicking create only saves one note', async ({ page }) => {
+    await fillIntakeForm(page, { name: 'Jordan Lee', complaint: 'Bleeding gums' });
+
+    await page.locator(SELECTORS.createNoteBtn).dblclick();
+
+    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
+  });
+
+  test('pressing Ctrl+Enter twice only saves one note', async ({ page }) => {
+    await fillIntakeForm(page, { name: 'Jordan Lee', complaint: 'Bleeding gums' });
+
+    await page.locator(SELECTORS.chiefComplaint).focus();
+    await page.keyboard.press('Control+Enter');
+    await page.keyboard.press('Control+Enter');
+
+    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
   });
 });

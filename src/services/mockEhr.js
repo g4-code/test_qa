@@ -1,4 +1,5 @@
 const notes = [];
+const notesByKey = new Map();
 const listeners = new Set();
 
 export function subscribeNotes(listener) {
@@ -10,11 +11,26 @@ function notify() {
   listeners.forEach((fn) => fn());
 }
 
+function draftKey(payload) {
+  return JSON.stringify({
+    patientName: payload.patientName,
+    chiefComplaint: payload.chiefComplaint,
+    checklist: payload.checklist,
+  });
+}
+
 /**
  * Persist a clinical note to the mock EHR.
- * TASK-03: no idempotency key — duplicate calls create duplicate records.
  */
 export async function createNote(payload) {
+  const key = draftKey(payload);
+  // Reserve the key before the async write so two rapid submits of the same
+  // draft can't both create a record.
+  if (notesByKey.has(key)) {
+    return notesByKey.get(key);
+  }
+  notesByKey.set(key, null);
+
   await delay(80);
 
   const note = {
@@ -24,6 +40,7 @@ export async function createNote(payload) {
   };
 
   notes.push(note);
+  notesByKey.set(key, note);
   notify();
   return note;
 }
@@ -34,6 +51,7 @@ export function getNotes() {
 
 export function resetNotes() {
   notes.length = 0;
+  notesByKey.clear();
   notify();
 }
 

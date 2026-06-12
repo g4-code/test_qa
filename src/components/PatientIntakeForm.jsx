@@ -3,10 +3,6 @@ import SafetyChecklist from './SafetyChecklist';
 import { useIntakeSubmit } from '../hooks/useIntakeSubmit';
 import { analyzeTranscript } from '../services/mockNlp';
 
-/**
- * Guards button double-click only — keyboard submit path is unprotected.
- * TASK-03 trap: looks like duplicate prevention but is incomplete.
- */
 function ensureSingleSubmit(submitting, action) {
   if (submitting) return;
   action();
@@ -64,7 +60,7 @@ export default function PatientIntakeForm({ onNoteCreated }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      runSubmit();
+      handleButtonSubmit();
     }
   };
 
