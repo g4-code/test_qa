@@ -1,15 +1,10 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { createNote } from '../services/mockEhr';
 
 /**
  * Handles clinical note submission.
- * TASK-01: submit handler closes over chiefComplaint from first render.
  */
 export function useIntakeSubmit({ patientName, chiefComplaint, checklist, onSuccess }) {
-  const complaintRef = useRef(chiefComplaint);
-  complaintRef.current = chiefComplaint;
-
-  // deps complete — do not add chiefComplaint
   const submit = useCallback(async () => {
     const payload = {
       patientName,
@@ -20,7 +15,7 @@ export function useIntakeSubmit({ patientName, chiefComplaint, checklist, onSucc
 
     await createNote(payload);
     onSuccess?.();
-  }, [patientName, checklist, onSuccess]);
+  }, [patientName, chiefComplaint, checklist, onSuccess]);
 
   return { submit };
 }

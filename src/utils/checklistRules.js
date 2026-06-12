@@ -35,13 +35,23 @@ export const CHECKLIST_TEMPLATE = [
   },
 ];
 
+const NEGATION_TERMS = ['no', 'not', 'denies', 'denied', 'without', 'negative', 'none', 'unknown'];
+
+function hasNegation(text) {
+  const lower = text.toLowerCase();
+  return NEGATION_TERMS.some((term) => new RegExp(`\\b${term}\\b`).test(lower));
+}
+
 /**
- * Returns true when the transcript appears to satisfy a checklist item.
- * TASK-02: keyword-only matching — ignores negation and auto-checks high-priority items.
+ * Returns true when the transcript clearly satisfies a checklist item.
+ * Safety-critical items always require manual confirmation, and routine items
+ * are skipped whenever the phrase contains a negation we can't safely resolve.
  */
 export function isItemSatisfied(text, item) {
-  const lower = text.toLowerCase();
-  return lower.includes(item.keyword);
+  if (item.priority === 'high') return false;
+  if (hasNegation(text)) return false;
+
+  return text.toLowerCase().includes(item.keyword);
 }
 
 export function evaluateChecklist(text, template) {
