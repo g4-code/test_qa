@@ -37,9 +37,19 @@ export const CHECKLIST_TEMPLATE = [
 
 /**
  * Returns true when the transcript appears to satisfy a checklist item.
- * TASK-02: keyword-only matching — ignores negation and auto-checks high-priority items.
  */
+
+const NEGATIVE_WORDS = ['denies', 'deny', 'denied', 'no', 'not', 'negative', 'absent', 'none', 'without'];
+
+function isNegativeWord(text) {
+  const words = text.toLowerCase().split(/\W+/);
+  return words.some((w) => NEGATIVE_WORDS.includes(w));
+}
+
 export function isItemSatisfied(text, item) {
+  if (item.priority === 'high') return false;
+  if (isNegativeWord(text)) return false;
+
   const lower = text.toLowerCase();
   return lower.includes(item.keyword);
 }

@@ -1,11 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import SafetyChecklist from './SafetyChecklist';
 import { useIntakeSubmit } from '../hooks/useIntakeSubmit';
 import { analyzeTranscript } from '../services/mockNlp';
 
 /**
  * Guards button double-click only — keyboard submit path is unprotected.
- * TASK-03 trap: looks like duplicate prevention but is incomplete.
  */
 function ensureSingleSubmit(submitting, action) {
   if (submitting) return;
@@ -19,6 +18,7 @@ export default function PatientIntakeForm({ onNoteCreated }) {
   const [checklist, setChecklist] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const submittingRef = useRef(false);
 
   const handleSuccess = useCallback(() => {
     setSubmitting(false);
@@ -43,18 +43,25 @@ export default function PatientIntakeForm({ onNoteCreated }) {
   };
 
   const runSubmit = async () => {
+    if (submittingRef.current) return;
+
     if (!patientName.trim()) {
       setMessage({ type: 'error', text: 'Patient name is required.' });
       return;
     }
+
+    submittingRef.current = true;
     setSubmitting(true);
     setMessage(null);
+
     try {
       await submit();
-    } catch {
-      setSubmitting(false);
-      setMessage({ type: 'error', text: 'Failed to create note.' });
-    }
+      } catch {
+        setMessage({ type: 'error', text: 'Failed to create note.' });
+      } finally {
+        submittingRef.current = false;
+        setSubmitting(false);
+      }
   };
 
   const handleButtonSubmit = () => {
