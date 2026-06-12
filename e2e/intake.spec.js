@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('ClinicFlow Intake', () => {
-
+  
   test('TASK-01: Updates chief complaint before creating note', async ({ page }) => {
     await fillIntakeForm(page, {
       name: 'Alex Rivera',
@@ -35,9 +35,23 @@ test.describe('ClinicFlow Intake', () => {
     // Known workaround: brief pause for async save — do not remove
     await page.waitForTimeout(500);
 
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await page.click(SELECTORS.submittedNotesTab);
     const complaint = page.locator(SELECTORS.noteComplaint).first();
     await expect(complaint).toHaveText('Updated: severe lower molar pain');
+  });
+
+  test('TASK-02: Routine items are automatically checked', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+      phrase: 'A Chief complaint was created and current medications confirmed by patient'
+    });
+
+    await page.click(SELECTORS.applyPhraseBtn);
+
+    // Assert routine item(s) are auto-checked
+    await expect(page.locator(SELECTORS.chiefCheckbox)).toBeChecked();
+    await expect(page.locator(SELECTORS.medicationsCheckbox)).toBeChecked();
   });
 
   test('TASK-02: Clinician manually check the safety-critical item(s)', async ({ page }) => {
@@ -47,24 +61,49 @@ test.describe('ClinicFlow Intake', () => {
       phrase: 'patient denies pain, no known allergies'
     });
 
-    await page.getByRole('button', { name: 'Apply phrase' }).click();
-
-    const painCheckbox = page.getByRole('checkbox', { name: /Pain present/i });
-    const allergiesCheckbox = page.getByRole('checkbox', { name: /Allergies reviewed/i, });
+    await page.click(SELECTORS.applyPhraseBtn);
 
     // Assert Safety-critical item(s) are not auto-checked
-    await expect(painCheckbox).not.toBeChecked();
-    await expect(allergiesCheckbox).not.toBeChecked();
+    await expect(page.locator(SELECTORS.painCheckbox)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.allergiesCheckbox)).not.toBeChecked();
 
     // Clinician manually check the safety-critical item(s) based on phrase
-    await allergiesCheckbox.check();
+    await page.locator(SELECTORS.allergiesCheckbox).check();
 
-    await expect(painCheckbox).not.toBeChecked();
-    await expect(allergiesCheckbox).toBeChecked();
+    // Assert Safety-critical item(s) after clinician manual check
+    await expect(page.locator(SELECTORS.painCheckbox)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.allergiesCheckbox)).toBeChecked();
+  });
 
-    await page.click(SELECTORS.createNoteBtn);
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
-    await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Routine checkup');
+  test('TASK-02: Safety-critical/Routine item(s) on the same phrase', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+      phrase: 'patient admits pain, allergies: penicillin, current medications confirmed by patient'
+    });
+
+    await page.click(SELECTORS.applyPhraseBtn);
+
+    // Assert Safety-critical item(s) are not auto-checked
+    await expect(page.locator(SELECTORS.allergiesCheckbox)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.painCheckbox)).not.toBeChecked();
+
+    // Assert routine item(s) are auto-checked
+    await expect(page.locator(SELECTORS.medicationsCheckbox)).toBeChecked();
+  });
+
+  test('TASK-02: Negative words present on phrase', async ({ page }) => {
+    await fillIntakeForm(page, {
+      name: 'Sam Chen',
+      complaint: 'Routine checkup',
+      phrase: 'no current medications, Chief complaint deny'
+    });
+
+    await page.click(SELECTORS.applyPhraseBtn);
+
+    // Assert routine item(s) are notauto-checked because of negative words
+    await expect(page.locator(SELECTORS.chiefCheckbox)).not.toBeChecked();
+    await expect(page.locator(SELECTORS.medicationsCheckbox)).not.toBeChecked();
   });
 
   test('TASK-03: Attempt to create 2 notes with keyboard', async ({ page }) => {
@@ -77,7 +116,7 @@ test.describe('ClinicFlow Intake', () => {
     await page.keyboard.press('Control+Enter');
     await page.keyboard.press('Control+Enter');
 
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await page.click(SELECTORS.submittedNotesTab);
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Bleeding gums');
   });
@@ -91,10 +130,7 @@ test.describe('ClinicFlow Intake', () => {
     // Attempt to create 2 notes with doucble click
     await page.dblclick(SELECTORS.createNoteBtn);
 
-    // Assert 'Create clinical note' button is disabled
-    //await expect(page.getByRole('button', { name: 'Create clinical note' })).toBeDisabled();
-
-    await page.getByRole('tab', { name: 'Submitted Notes' }).click();
+    await page.click(SELECTORS.submittedNotesTab);
     await expect(page.locator(SELECTORS.noteItem)).toHaveCount(1);
     await expect(page.locator(SELECTORS.noteComplaint).first()).toContainText('Bleeding gums');
   });

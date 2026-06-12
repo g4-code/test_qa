@@ -6,4 +6,11 @@ export const SELECTORS = {
   notesList: '[data-testid="notes-list"]',
   noteItem: '[data-testid="note-item"]',
   noteComplaint: '[data-testid="note-complaint"]',
+  applyPhraseBtn: 'role=button[name="Apply phrase"]',
+  chiefCheckbox: '[id="check-cc"]',
+  allergiesCheckbox: '[id="check-allergies"]',
+  painCheckbox: '[id="check-pain"]',
+  medicationsCheckbox: '[id="check-meds"]',
+  treatmentCheckbox: '[id="check-consent"]',
+  submittedNotesTab: 'role=tab[name="Submitted Notes"]'
 };

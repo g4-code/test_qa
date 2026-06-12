@@ -38,11 +38,17 @@ export const CHECKLIST_TEMPLATE = [
 /**
  * Returns true when the transcript appears to satisfy a checklist item.
  */
+
+const NEGATIVE_WORDS = ['denies', 'deny', 'denied', 'no', 'not', 'negative', 'absent', 'none', 'without'];
+
+function isNegativeWord(text) {
+  const words = text.toLowerCase().split(/\W+/);
+  return words.some((w) => NEGATIVE_WORDS.includes(w));
+}
+
 export function isItemSatisfied(text, item) {
-  // Safety-critical items require manual confirmation.
-  if (item.priority === 'high') {
-    return false;
-  }
+  if (item.priority === 'high') return false;
+  if (isNegativeWord(text)) return false;
 
   const lower = text.toLowerCase();
   return lower.includes(item.keyword);
